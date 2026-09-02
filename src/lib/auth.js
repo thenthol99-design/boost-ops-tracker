@@ -32,7 +32,6 @@ export const login = async (username, password) => {
 export const logout = () => signOut(auth);
 
 // ── Create a Firebase Auth account without changing current session ─────────
-// Uses the REST API so the admin session is preserved.
 export const createAuthUser = async (username, password) => {
   const email = toEmail(username);
   const res = await fetch(`${AUTH_REST}:signUp?key=${API_KEY}`, {
@@ -41,7 +40,16 @@ export const createAuthUser = async (username, password) => {
     body: JSON.stringify({ email, password, returnSecureToken: false }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "Failed to create auth user");
+  if (!res.ok) {
+    const msg = data.error?.message || "";
+    if (msg.includes("EMAIL_EXISTS")) {
+      throw new Error("Username already exists. Please choose a different username.");
+    }
+    if (msg.includes("WEAK_PASSWORD")) {
+      throw new Error("Password must be at least 6 characters.");
+    }
+    throw new Error(msg || "Failed to create auth user");
+  }
   return { uid: data.localId, email };
 };
 

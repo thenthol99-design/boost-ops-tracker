@@ -123,31 +123,37 @@ function StaffFormModal({ staffMember, onClose, onSave }) {
   const [role, setRole] = useState(staffMember?.role || "staff");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const autoUsername = name.toLowerCase().replace(/\s+/g, ".");
 
-  const handleSave = () => {
-    if (!name.trim()) return;
+  const handleSave = async () => {
+    if (!name.trim() || saving) return;
     const fields = {
       name: name.trim(),
       username: (username || autoUsername).trim(),
       role,
     };
     if (password) fields.password = password;
-    onSave(fields);
+    setSaving(true);
+    try {
+      await onSave(fields);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <Modal title={staffMember ? "Edit Staff Member" : "Add Staff Member"} onClose={onClose} width={420}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Field label="Full Name" required>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sokha" style={inputStyle} autoFocus />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sokha" style={inputStyle} autoFocus disabled={saving} />
         </Field>
         <Field label="Username">
-          <input value={username || autoUsername} onChange={(e) => setUsername(e.target.value)} placeholder={autoUsername || "username"} style={inputStyle} />
+          <input value={username || autoUsername} onChange={(e) => setUsername(e.target.value)} placeholder={autoUsername || "username"} style={inputStyle} disabled={saving} />
         </Field>
         <Field label="Role">
-          <select value={role} onChange={(e) => setRole(e.target.value)} style={inputStyle}>
+          <select value={role} onChange={(e) => setRole(e.target.value)} style={inputStyle} disabled={saving}>
             <option value="staff">Staff</option>
             <option value="admin">Admin</option>
           </select>
@@ -160,8 +166,9 @@ function StaffFormModal({ staffMember, onClose, onSave }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder={staffMember ? "Leave blank to keep" : "Min 6 characters"}
               style={{ ...inputStyle, paddingRight: 36 }}
+              disabled={saving}
             />
-            <button type="button" onClick={() => setShowPass(!showPass)} style={{
+            <button type="button" onClick={() => setShowPass(!showPass)} disabled={saving} style={{
               position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
               background: "none", border: "none", color: COLORS.textSecondary, cursor: "pointer",
             }}>
@@ -175,13 +182,16 @@ function StaffFormModal({ staffMember, onClose, onSave }) {
           </div>
         )}
         <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} disabled={saving} style={{
             flex: 1, padding: "10px", borderRadius: 8, fontSize: 13, cursor: "pointer",
             border: `1px solid ${COLORS.border}`, background: COLORS.surfaceAlt, color: COLORS.textPrimary,
           }}>Cancel</button>
-          <button onClick={handleSave} disabled={!name.trim()} style={{
-            flex: 2, ...primaryBtnStyle, justifyContent: "center", opacity: name.trim() ? 1 : 0.5,
-          }}>{staffMember ? "Save Changes" : "Add Staff"}</button>
+          <button onClick={handleSave} disabled={!name.trim() || saving} style={{
+            flex: 2, ...primaryBtnStyle, justifyContent: "center", opacity: (!name.trim() || saving) ? 0.5 : 1,
+            cursor: (!name.trim() || saving) ? "not-allowed" : "pointer",
+          }}>
+            {saving ? "Saving..." : (staffMember ? "Save Changes" : "Add Staff")}
+          </button>
         </div>
       </div>
     </Modal>

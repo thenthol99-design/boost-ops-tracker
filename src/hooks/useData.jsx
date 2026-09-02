@@ -122,9 +122,12 @@ export function DataProvider({ children }) {
 
   // ── Staff CRUD ──────────────────────────────────────────────────────────
   const addStaff = useCallback(async (fields) => {
-    const newId = uid();
     const username = fields.username || fields.name.toLowerCase().replace(/\s+/g, ".");
     const password = fields.password || "password123";
+
+    if (password.length < 6) {
+      throw new Error("Password must be at least 6 characters.");
+    }
 
     // Create Firebase Auth account (doesn't change admin session)
     let firebaseUid;
@@ -132,7 +135,7 @@ export function DataProvider({ children }) {
       const result = await createAuthUser(username, password);
       firebaseUid = result.uid;
     } catch (err) {
-      throw new Error(`Auth error: ${err.message}`);
+      throw new Error(err.message);
     }
 
     const newStaff = {
@@ -146,10 +149,18 @@ export function DataProvider({ children }) {
       lastLogin: null,
     };
 
-    // Use Firebase Auth UID as Firestore document ID
-    await setDoc(doc(db, COL.users, firebaseUid), newStaff);
-    await audit("CREATE", "staff", firebaseUid, null, { name: newStaff.name, role: newStaff.role });
-    return { id: firebaseUid, ...newStaff };
+    try {
+      // Use Firebase Auth UID as Firestore document ID
+      await setDoc(doc(db, COL.users, firebaseUid), newStaff);
+      await audit("CREATE", "staff", firebaseUid, null, { name: newStaff.name, role: newStaff.role });
+      return { id: firebaseUid, ...newStaff };
+    } catch (err) {
+      // Clean up orphaned auth user if firestore write failed
+      try {
+        await deleteAuthUser(username, password);
+      } catch { /* ignore rollback failure */ }
+      throw err;
+    }
   }, [audit]);
 
   const updateStaff = useCallback(async (id, fields) => {

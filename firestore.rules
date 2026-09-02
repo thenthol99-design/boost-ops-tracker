@@ -2,72 +2,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: check if user is authenticated
     function isAuth() {
       return request.auth != null;
     }
 
-    // Helper: check if user is admin (stored in their Firestore profile)
     function isAdmin() {
       return isAuth() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Helper: check if user is active
     function isActive() {
       return isAuth() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
 
-    // Users collection — staff profiles
+    // Users collection
     match /users/{userId} {
-      // Allow unauthenticated list (count only) for first-run detection on login page
-      allow list: if true;
-      // Authenticated active users can read profiles
+      allow list: if true; // first-run detection
       allow get: if isAuth() && isActive();
-      // Bootstrap: allow any authenticated user to create their own doc
-      // (used for first admin creation — safe because bootstrapAdmin checks no users exist)
-      allow create: if isAuth() && request.auth.uid == userId;
-      // Only admin can update/delete
+      allow create: if isAdmin() || (isAuth() && request.auth.uid == userId); // admin creates staff, or bootstrap first admin
       allow update, delete: if isAdmin();
     }
 
-    // Pages — all active staff can read; only admin can write
     match /pages/{pageId} {
       allow read: if isAuth() && isActive();
       allow write: if isAdmin();
     }
 
-    // Page-staff assignments — all authenticated staff can read
     match /pageStaffAssignments/{assignId} {
       allow read: if isAuth() && isActive();
       allow write: if isAdmin();
     }
 
-    // Campaigns — all authenticated staff can read; only admin can write
     match /campaigns/{campaignId} {
       allow read: if isAuth() && isActive();
       allow write: if isAdmin();
     }
 
-    // Entries — all authenticated staff can read; staff can create/update entries for their pages
     match /entries/{entryId} {
       allow read: if isAuth() && isActive();
-      // Staff can add entries for pages they're assigned to
       allow create: if isAuth() && isActive();
-      // Only admin can delete
       allow delete: if isAdmin();
-      // Staff can update entries they created; admin can update all
       allow update: if isAdmin() || (isActive() && resource.data.staffId == request.auth.uid);
     }
 
-    // Audit log — read-only for all staff; system writes via server
     match /auditLog/{logId} {
       allow read: if isAdmin();
       allow write: if isAuth() && isActive();
     }
 
-    // Settings — admin only
     match /settings/{settingId} {
       allow read: if isAuth() && isActive();
       allow write: if isAdmin();
