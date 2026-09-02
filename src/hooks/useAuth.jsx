@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, collection, query, getDocs, limit } from "firebase/firestore";
 import { auth, db } from "../lib/firebase.js";
-import { login as doLogin, logout as doLogout, bootstrapAdmin, createAuthUser } from "../lib/auth.js";
+import { login as doLogin, logout as doLogout, bootstrapAdmin } from "../lib/auth.js";
 import { COLORS } from "../lib/colors.js";
 import { uid } from "../lib/helpers.js";
 
@@ -58,8 +58,9 @@ export function AuthProvider({ children }) {
     try {
       // Check if any users already exist in Firestore
       const usersSnap = await getDocs(query(collection(db, "users"), limit(1)));
-      if (!usersSnap.empty) return false; // already bootstrapped
+      if (!usersSnap.empty) return { success: false, error: "Admin already exists" };
 
+      // bootstrapAdmin uses createUserWithEmailAndPassword → user is now signed in
       const { uid: firebaseUid, username } = await bootstrapAdmin(name, password);
 
       const adminProfile = {
@@ -68,17 +69,16 @@ export function AuthProvider({ children }) {
         role: "admin",
         status: "active",
         color: "#E8B24D",
-        password: btoa(password), // stored for admin management only
+        password: btoa(password),
         createdAt: Date.now(),
         lastLogin: null,
       };
       await setDoc(doc(db, "users", firebaseUid), adminProfile);
-      // Firebase Auth will trigger onAuthStateChanged to load the profile
-      // But createAuthUser doesn't sign in, so we must sign in explicitly
-      return await doLogin(username, password);
+      // onAuthStateChanged will pick up the new auth state and load the profile
+      return { success: true };
     } catch (err) {
       console.error("Bootstrap error:", err);
-      return false;
+      return { success: false, error: err.message };
     }
   }, []);
 

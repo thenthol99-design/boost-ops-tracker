@@ -1,4 +1,4 @@
-import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, toEmail, AUTH_REST, API_KEY } from "./firebase.js";
 
 // ── Session (backed by Firebase Auth — no manual sessionStorage needed) ──────
@@ -97,11 +97,13 @@ export const changeOwnPassword = async (currentPassword, newPassword) => {
 };
 
 // ── Bootstrap first admin ───────────────────────────────────────────────────
-// Returns Firebase uid on success.
+// Uses createUserWithEmailAndPassword so the new admin is immediately signed in,
+// allowing the subsequent Firestore setDoc to succeed under auth rules.
 export const bootstrapAdmin = async (name, password) => {
   const username = name.toLowerCase().replace(/\s+/g, ".");
-  const { uid } = await createAuthUser(username, password);
-  return { uid, username };
+  const email = toEmail(username);
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  return { uid: cred.user.uid, username };
 };
 
 // ── Permission checks (unchanged) ──────────────────────────────────────────
