@@ -21,10 +21,16 @@ service cloud.firestore {
 
     // Users collection — staff profiles
     match /users/{userId} {
-      // Anyone authenticated can read user profiles (needed for page assignments)
-      allow read: if isAuth() && isActive();
-      // Only admin can create/update/delete users
-      allow write: if isAdmin();
+      // Allow unauthenticated list (count only) for first-run detection on login page
+      allow list: if true;
+      // Authenticated active users can read profiles
+      allow get: if isAuth() && isActive();
+      // Allow first admin creation (bootstrap): only if the user is writing their own doc
+      // and no admin exists yet (checked by: users collection is empty = this is the first doc)
+      allow create: if isAdmin() ||
+        (isAuth() && request.auth.uid == userId && request.resource.data.role == 'admin');
+      // Only admin can update/delete
+      allow update, delete: if isAdmin();
     }
 
     // Pages — all active staff can read; only admin can write

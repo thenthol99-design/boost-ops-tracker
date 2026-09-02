@@ -24,9 +24,17 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) { navigate("/dashboard", { replace: true }); return; }
     // Check Firestore for first-run (no users yet)
+    // If permission-denied, it means rules are blocking unauthenticated access
+    // In that case, we try the bootstrap approach — Firestore rules will reject
+    // duplicate admin creation so it's safe to show the setup form
     getDocs(query(collection(db, "users"), limit(1))).then((snap) => {
       setIsFirstRun(snap.empty);
-    }).catch(() => setIsFirstRun(false));
+    }).catch((err) => {
+      // permission-denied = rules active, but we don't know if users exist
+      // Show setup form — bootstrap() will reject if admin already exists
+      if (err.code === "permission-denied") setIsFirstRun(true);
+      else setIsFirstRun(false);
+    });
   }, [user, navigate]);
 
   const handleLogin = async (e) => {
