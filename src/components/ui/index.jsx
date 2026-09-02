@@ -225,7 +225,7 @@ export function Toast({ toast }) {
 }
 
 // ── ConfirmDialog ──────────────────────────────────────────────────────────
-export function ConfirmDialog({ message, onConfirm, onCancel, danger = true }) {
+export function ConfirmDialog({ message, onConfirm, onCancel, danger = true, title, confirmLabel }) {
   React.useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onCancel(); };
     window.addEventListener("keydown", h);
@@ -253,7 +253,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel, danger = true }) {
           {danger ? "⚠️" : "❓"}
         </div>
         <div className="bt-display" style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
-          {danger ? "Confirm Delete" : "Confirm Action"}
+          {title || (danger ? "Confirm Delete" : "Confirm Action")}
         </div>
         <div style={{ fontSize: 13.5, color: COLORS.textSecondary, marginBottom: 22, lineHeight: 1.7, whiteSpace: "pre-line" }}>
           {message}
@@ -266,7 +266,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel, danger = true }) {
           <button onClick={onConfirm} style={{
             flex: 1, padding: "10px", borderRadius: 8, fontSize: 13, cursor: "pointer",
             border: "none", background: danger ? COLORS.bad : COLORS.accent, color: "#fff", fontWeight: 700,
-          }}>{danger ? "Delete" : "Confirm"}</button>
+          }}>{confirmLabel || (danger ? "Delete" : "Confirm")}</button>
         </div>
       </div>
     </div>

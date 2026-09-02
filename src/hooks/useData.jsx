@@ -187,6 +187,45 @@ export function DataProvider({ children }) {
     await audit("UPDATE", "staff", id, { status: "active" }, { status: "inactive" });
   }, [audit]);
 
+  const reactivateStaff = useCallback(async (id) => {
+    await updateDoc(doc(db, COL.users, id), { status: "active" });
+    await audit("UPDATE", "staff", id, { status: "inactive" }, { status: "active" });
+  }, [audit]);
+
+  const deleteStaff = useCallback(async (id) => {
+    const staffMember = dataRef.current.staff.find((s) => s.id === id);
+    if (!staffMember) return;
+
+    const batch = writeBatch(db);
+
+    // 1. Delete user from Firestore
+    batch.delete(doc(db, COL.users, id));
+
+    // 2. Unassign pages assigned to this staff
+    dataRef.current.pages
+      .filter((p) => p.staffId === id)
+      .forEach((p) => batch.update(doc(db, COL.pages, p.id), { staffId: null }));
+
+    // 3. Close open assignments
+    dataRef.current.pageStaffAssignments
+      .filter((a) => a.staffId === id && a.endDate === null)
+      .forEach((a) => batch.update(doc(db, COL.assignments, a.id), { endDate: todayStr() }));
+
+    await batch.commit();
+
+    // 4. Try to delete from Firebase Auth via REST
+    if (staffMember.username && staffMember.password) {
+      try {
+        const plainPassword = atob(staffMember.password);
+        await deleteAuthUser(staffMember.username, plainPassword);
+      } catch (err) {
+        console.warn("Could not delete Auth account:", err.message);
+      }
+    }
+
+    await audit("DELETE", "staff", id, { name: staffMember.name, username: staffMember.username }, null);
+  }, [audit]);
+
   // ── Pages CRUD ──────────────────────────────────────────────────────────
   const addPage = useCallback(async (fields) => {
     const newPage = {
@@ -416,7 +455,7 @@ export function DataProvider({ children }) {
     <DataContext.Provider value={{
       data,
       // staff
-      addStaff, updateStaff, deactivateStaff,
+      addStaff, updateStaff, deactivateStaff, reactivateStaff, deleteStaff,
       // pages
       addPage, updatePage, deletePage,
       // campaigns
