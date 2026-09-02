@@ -53,7 +53,8 @@ export default function PageDetailPage() {
     .sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
 
   const isAdmin = user?.role === "admin";
-  const canEdit = isAdmin;
+  const isAssignedStaff = page.staffId === user?.id;
+  const canEdit = isAdmin || isAssignedStaff;
 
   return (
     <div className="bt-fade">

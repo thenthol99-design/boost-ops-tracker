@@ -42,8 +42,8 @@ service cloud.firestore {
     match /entries/{entryId} {
       allow read: if isAuth() && isActive();
       allow create: if isAuth() && isActive();
-      allow delete: if isAdmin();
-      allow update: if isAdmin() || (isActive() && resource.data.staffId == request.auth.uid);
+      allow delete: if isAdmin() || (isActive() && (resource.data.staffId == request.auth.uid || resource.data.createdBy == request.auth.uid));
+      allow update: if isAdmin() || (isActive() && (resource.data.staffId == request.auth.uid || resource.data.createdBy == request.auth.uid));
     }
 
     match /auditLog/{logId} {
