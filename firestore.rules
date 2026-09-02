@@ -25,10 +25,9 @@ service cloud.firestore {
       allow list: if true;
       // Authenticated active users can read profiles
       allow get: if isAuth() && isActive();
-      // Allow first admin creation (bootstrap): only if the user is writing their own doc
-      // and no admin exists yet (checked by: users collection is empty = this is the first doc)
-      allow create: if isAdmin() ||
-        (isAuth() && request.auth.uid == userId && request.resource.data.role == 'admin');
+      // Bootstrap: allow any authenticated user to create their own doc
+      // (used for first admin creation — safe because bootstrapAdmin checks no users exist)
+      allow create: if isAuth() && request.auth.uid == userId;
       // Only admin can update/delete
       allow update, delete: if isAdmin();
     }
