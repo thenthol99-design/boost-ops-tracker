@@ -30,13 +30,13 @@ export const entryDate = (e) => e.date || e.startDate || "";
 // Normalize depositors: use explicit split if present, else legacy field
 export const entryDepositors = (e) => {
   const explicit = (Number(e.fbDepositors || 0) + Number(e.tgDepositors || 0));
-  return explicit > 0 ? explicit : Number(e.depositors || 0);
+  return explicit > 0 ? explicit : Number(e.conversions || e.depositors || 0);
 };
 
 // Normalize chats/leads: use explicit split if present, else legacy field
 export const entryChats = (e) => {
   const explicit = (Number(e.fbChats || 0) + Number(e.tgChats || 0));
-  return explicit > 0 ? explicit : Number(e.chats || 0);
+  return explicit > 0 ? explicit : Number(e.leads || e.chats || 0);
 };
 
 // ── Raw metric aggregate from an array of entries ─────────────────────────

@@ -229,6 +229,7 @@ export const parseCSVImport = (text, pages, staff) => {
       leads: parseInt(get(cols, "leads")) || 0,
       accountsCreated: parseInt(get(cols, "accounts created", "accounts")) || 0,
       conversions: parseInt(get(cols, "conversions", "depositors")) || 0,
+      depositors: parseInt(get(cols, "conversions", "depositors")) || 0,
       revenue: parseFloat(get(cols, "revenue")) || null,
       note: get(cols, "notes", "note"),
       mode: "daily",

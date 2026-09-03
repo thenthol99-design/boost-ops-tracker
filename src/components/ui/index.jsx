@@ -47,9 +47,12 @@ export function StatChip({ icon: Icon, label, value, accent, sub }) {
 }
 
 // ── KPI Card (bigger, for dashboard) ──────────────────────────────────────
-export function KpiCard({ icon: Icon, label, value, sub, accent, trend, trendLabel }) {
-  const trendPositive = trend !== null && trend !== undefined && trend >= 0;
-  const trendNegative = trend !== null && trend !== undefined && trend < 0;
+export function KpiCard({ icon: Icon, label, value, sub, accent, trend, trendLabel, invertTrend = false }) {
+  const isUp = trend !== null && trend !== undefined && trend > 0;
+  const isDown = trend !== null && trend !== undefined && trend < 0;
+  const isGood = invertTrend ? isDown : isUp;
+  const isBad = invertTrend ? isUp : isDown;
+  const trendColor = isGood ? COLORS.good : isBad ? COLORS.bad : COLORS.textFaint;
   return (
     <div className="bt-card" style={{
       background: COLORS.surface, border: `1px solid ${COLORS.borderSoft}`,
@@ -72,9 +75,9 @@ export function KpiCard({ icon: Icon, label, value, sub, accent, trend, trendLab
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 3, marginTop: 6,
           fontSize: 11, fontWeight: 600,
-          color: trendPositive ? COLORS.good : trendNegative ? COLORS.bad : COLORS.textFaint,
+          color: trendColor,
         }}>
-          {trendPositive ? "↑" : trendNegative ? "↓" : "→"}
+          {isUp ? "↑" : isDown ? "↓" : "→"}
           {Math.abs(trend).toFixed(1)}%
           {trendLabel && <span style={{ color: COLORS.textFaint, fontWeight: 400 }}> {trendLabel}</span>}
         </div>

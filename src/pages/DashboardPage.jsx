@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  DollarSign, Users, Target,
+  DollarSign, Users, Target, CircleDollarSign,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis,
@@ -33,7 +33,7 @@ const CHART_TOOLTIP_STYLE = {
 export default function DashboardPage() {
   const { data } = useData();
   const { user } = useAuth();
-  const { T } = useLang();
+  const { T, lang } = useLang();
   const navigate = useNavigate();
   const [preset, setPreset] = useState("this_month");
   const [customFrom, setCustomFrom] = useState("");
@@ -91,9 +91,11 @@ export default function DashboardPage() {
 
   const trendPct = (field) => {
     if (!prevMetrics) return undefined;
-    const cur = metrics[field] ?? 0;
-    const prev = prevMetrics[field] ?? 0;
-    if (prev === 0) return undefined;
+    const cur = metrics[field];
+    const prev = prevMetrics[field];
+    if (cur === null || cur === undefined || prev === null || prev === undefined || prev === 0 || !isFinite(prev) || !isFinite(cur)) {
+      return undefined;
+    }
     return ((cur - prev) / prev) * 100;
   };
 
@@ -127,6 +129,8 @@ export default function DashboardPage() {
   const visiblePages = visibleIds !== null
     ? data.pages.filter((p) => visibleIds.includes(p.id))
     : data.pages;
+
+  const pageColumns = useMemo(() => getPageColumns(lang), [lang]);
 
   return (
     <div className="bt-fade">
@@ -167,6 +171,7 @@ export default function DashboardPage() {
         <KpiCard icon={DollarSign} label={T("total_spend")} value={fmtMoney(metrics.spend)} accent={COLORS.accent} trend={trendPct("spend")} trendLabel={"vs prev"} />
         <KpiCard icon={Users} label={T("total_leads")} value={fmt(metrics.leads)} accent="#C77DFF" trend={trendPct("leads")} />
         <KpiCard icon={Target} label={T("conversions")} value={fmt(metrics.conversions)} accent={COLORS.good} trend={trendPct("conversions")} />
+        <KpiCard icon={CircleDollarSign} label={T("cost_per_conv")} value={fmtMoney(metrics.cpconv)} accent={COLORS.info} trend={trendPct("cpconv")} trendLabel={"vs prev"} invertTrend />
       </div>
 
       {/* Charts row */}
@@ -209,7 +214,7 @@ export default function DashboardPage() {
       <Card style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{T("page_performance")}</div>
         <SortableTable
-          columns={PAGE_COLUMNS}
+          columns={pageColumns}
           rows={pageRows}
           onRowClick={(row) => navigate(`/pages/${row.id}`)}
           emptyMsg="No data for this period"
@@ -269,7 +274,7 @@ function ChartEmpty() {
   );
 }
 
-const PAGE_COLUMNS = [
+const getPageColumns = (lang) => [
   { key: "name", label: "Page", render: (r) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <div style={{ width: 8, height: 8, borderRadius: 4, background: r.color, flexShrink: 0 }} />
@@ -282,7 +287,8 @@ const PAGE_COLUMNS = [
       <span style={{ fontSize: 12.5 }}>{r.staffName}</span>
     </div>
   ) : <span style={{ color: COLORS.textFaint }}>—</span>},
-  { key: "spend",       label: "ចំណាយ",        align: "right", render: (r) => <MetricValue value={r.spend} prefix="$" decimals={0} /> },
-  { key: "leads",       label: "ឆាតចូល",       align: "right", render: (r) => <MetricValue value={r.leads} decimals={0} highlight="#C77DFF" /> },
-  { key: "conversions", label: "អ្នកដាក់ប្រាក់", align: "right", render: (r) => <MetricValue value={r.conversions} decimals={0} highlight={COLORS.good} /> },
+  { key: "spend",       label: lang === "km" ? "ចំណាយ" : "Spend", align: "right", render: (r) => <MetricValue value={r.spend} prefix="$" decimals={0} /> },
+  { key: "leads",       label: lang === "km" ? "ឆាតចូល" : "Leads", align: "right", render: (r) => <MetricValue value={r.leads} decimals={0} highlight="#C77DFF" /> },
+  { key: "conversions", label: lang === "km" ? "អ្នកដាក់ប្រាក់" : "Conversions", align: "right", render: (r) => <MetricValue value={r.conversions} decimals={0} highlight={COLORS.good} /> },
+  { key: "cpconv",      label: lang === "km" ? "តម្លៃ/ដាក់ប្រាក់" : "Cost / Conv", align: "right", sortVal: (r) => r.cpconv ?? Infinity, render: (r) => <MetricValue value={r.cpconv} prefix="$" decimals={2} /> },
 ];
